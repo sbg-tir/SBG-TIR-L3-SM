@@ -22,4 +22,4 @@ The 2017-2027 Decadal Survey for Earth Science and Applications from Space (ESAS
 
 
 _______________________________________________________________________________________________________________________
-This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 4 volcanic activity (L4 VA) data product algorithm.
+<i>This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.
