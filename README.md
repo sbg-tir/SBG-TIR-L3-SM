@@ -22,3 +22,4 @@ ________________________________________________________________________________
 <i>This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.</i>
 
 
+## Level 3 Surface Mineralogy Algorithm Theoretical Basis Document (ATBD): [click here](/SBG_L3_ATBD_SM_20231107.pdf)
