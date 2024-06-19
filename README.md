@@ -23,4 +23,5 @@ ________________________________________________________________________________
 
 
 ## Level 3 Algorithm Theoretical Basis Document (ATBD): [click here](/SBG_L3_ATBD_SM_20231107.pdf)
-## 
+## Level 3 Product Specification Document (PSD): [click here](/SBG-TIR_PSD_L3_SM_20231107.pdf)
+
