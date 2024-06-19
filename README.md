@@ -20,6 +20,7 @@ The 2017-2027 Decadal Survey for Earth Science and Applications from Space (ESAS
 
 _______________________________________________________________________________________________________________________
 <i>This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.</i>
+_______________________________________________________________________________________________________________________
 
 
 ## Level 3 Algorithm Theoretical Basis Document (ATBD): [click here](/SBG_L3_ATBD_SM_20231107.pdf)
