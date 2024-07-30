@@ -17,7 +17,6 @@ NASA Jet Propulsion Laboratory 329A
 
 ##  1. Introduction
 
-### 1.1. Identification
 This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.
 
 This document outlines the theory and methodology for generating the OTTER Level-3 (L3) surface mineralogy (SM) product. The SM product uses the L2 TIR surface emissivity data as input together with a spectral library of the most common Earth surface minerals acquired in emission in the laboratory at 2 cm^-1^ resolution (Christensen et al., 2000). Most silicates, carbonates, and other rock-forming minerals have diagnostic spectral features in the TIR regions characterized by the strongest absorption bands also known as Reststrahlen features (Figure 1). The SM algorithm uses the principal of linear spectral mixing in TIR region where the larger absorption coefficients typical of most rock-forming minerals limit photon transmission and scattering within the mineral grains. The emitted spectrum, therefore, has spectral features in linear proportion to the areal abundance of those minerals in the unknown sample (Ramsey and Christensen, 1998). In contrast, this scattering is more prevalent in the visible short-wave infrared (VSWIR) causing non-linearity in the reflectance spectrum and requiring more complex mapping approaches to mineral identification (Clark et al., 2003, Connelly et al., 2021).
@@ -25,15 +24,55 @@ This document outlines the theory and methodology for generating the OTTER Level
 The SM product is applied to the at-surface TIR emissivity data derived from the L2 land surface temperature and emissivity (LSTE) product. It will be applied to a limited subset of OTTER data determined using a seasonally adjusted global emissivity mask (e.g., Hulley et al., 2015). Only OTTER data with an average emissivity of \< 0.92 (avoiding significant vegetation cover) and an average temperature \> 0 C (avoiding snow and ice), which corresponds to \~ 30% of the Earth's land surface, will be mapped using the SM algorithm. The emission spectrum from any pixel meeting these criteria is modeled using the pre-determined spectral library as input and producing a best-fit suite of mineral endmember images plus their corresponding residual error images. A root-mean-squared (RMS) error image is also produced to assess the overall goodness-of-fit of the model. Finally, a weight percent silica (WPS) image is also produced using the approach of Hook et al. (2005).
 
 ![image](media/image3.png)
- *Figure 1: TIR (8.0 – 13.0 µm) spectral emissivity of quartz and microcline (potassium feldspar) showing the diagnostic Reststrahlen emissivity features for both minerals. The inclusion of a sixth TIR band at ~ 10.3 mm allows better discrimination of these primary rock-forming minerals using the SM algorithm. Data from: ASU Spectral Library (Christensen et al., 2000).*
+*Figure 1: TIR (8.0 – 13.0 µm) spectral emissivity of quartz and microcline (potassium feldspar) showing the diagnostic Reststrahlen emissivity features for both minerals. The inclusion of a sixth TIR band at ~ 10.3 mm allows better discrimination of these primary rock-forming minerals using the SM algorithm. Data from: ASU Spectral Library (Christensen et al., 2000).*
  
 The SM data will be assessed and validated throughout the mission using pseudo-invariant sand dune sites in the Western United States, Africa, and China (Hulley and Baldridge, 2013; Helder et al., 2010). Sand dunes present ideal calibration sites for TIR emissivity-based compositional studies because they have well-mixed, unimodal surfaces with low percentages of vegetation and shadows (Ramsey et al., 1999; Scheidt and Ramsey, 2010; Scheidt et al., 2011).
 
 The remainder of the document will discuss the SBG instrument characteristics, provide a background on TIR remote sensing, give a full description and background on the SM algorithm, provide quality assessment, discuss numerical simulation studies and, finally, outline a validation plan.
 
-## 2. Theory
+## 2. Data Products
 
-### 2.1. Mid-wave and Thermal Infrared Remote Sensing Background
+### 2.1. Metadata
+
+SBG-TIR standards incorporate additional metadata that describe each GeoTIFF Dataset within the GeoTIFF file. Each of these metadata elements appear in an GeoTIFF Attribute that is directly associated with the GeoTIFF Dataset. Wherever possible, these GeoTIFF Attributes employ names that conform to the Climate and Forecast (CF) conventions. 
+
+Each SBG product bundle contains two sets of product metadata:
+-   ProductMetadata
+-   StandardMetadata
+
+#### 2.1.1. Standard Metadata
+Information on the `StandardMetadata` is included on the [SBG-TIR github landing page](https://github.com/sbg-tir)
+
+#### 2.1.2. Product Metadata
+
+### 2.2. Scientific Data Set (SDS) Variables
+
+|  **SDS** |    **Long Name**    |   **Data type** |  **Units**  | **Valid Range** |  **Fill Value** |  **Scale Factor**  | **Offset** | **Group** | **SDS** |
+|  Amph% |      Amphibole Percentage       |       Int8  |          %   |       1-255   |          0    |
+|  Carb%  |     Carbonate Percentage       |       Int8    |        %  |        1-255    |         0     |
+|  Mica%   |    Mica Percentage            |       Int8   |         %   |       1-255     |        0    |
+|  Oliv%    |   Olivine Percentage        |        Int8    |        %    |      1-255      |       0    |
+|  Plag% |      Plagioclase Feldspar Percentage  | Int8     |       %   |       1-255       |      0   |
+|  Kspr%  |     Potassium Feldspar Percentage    | Int8      |      %   |       1-255  |           0  |
+|  Pyrx%   |    Pyroxene Percentage    |           Int8  |          %   |       1-255   |          0   |
+|  Qrtz%    |   Quartz Percentage       |          Int8   |         %    |      1-255    |         0  |
+|  Gyps%    |   Gypsum Percentage        |         Int8    |        %   |       1-255     |        0   |
+|  Bb%      |   Blackbody Percentage      |        Int8     |       %     |     1-255      |       0    |                               
+|  TIR1-res |   TIR Band 1 Residual Error  |       Float16   |      n/a   |     0-65535     |      0     |                              
+|  TIR2-res |   TIR Band 2 Residual Error   |      Float16    |     n/a   |      0-65535     |      0      |                             
+|  TIR3-res  |  TIR Band 3 Residual Error    |     Float16     |    n/a   |      0-65535      |     0       |                            
+|  TIR4-res  |  TIR Band 4 Residual Error     |    Float16 |        n/a   |      0-65535       |    0    |
+|  TIR5-res  |  TIR Band 5 Residual Error   |      Float16  |       n/a   |      0-65535        |   0     |                              
+|  TIR6-res  |  TIR Band 6 Residual Error    |     Float16   |      n/a   |      0-65535   |        0  |
+|  RMS-err   |  RMS Error        |                 Float16    |     n/a   |      0-65535    |       0   |
+|  WPS      |   Wt% silica        |                Float16     |    %     |     0-65535      |     0  |
+|  QC       |   Data Quality       |               Int8         |   n/a   |      1-255        |     0 |
+
+*Table 2. The Scientific Data Sets (SDSs) for the L3 SBG Surface Mineralogy (SM) product*
+
+## 3. Theory
+
+### 3.1. Mid-wave and Thermal Infrared Remote Sensing Background
 
 The at-sensor measured radiance in the infrared region (3--13 µm) consists of a combination of different terms from surface emission, solar reflection, and atmospheric emission and attenuation. The Earth-emitted radiance is a function of the temperature and emissivity of the surface, which is then attenuated by the atmosphere on its path to the satellite. The emissivity of an isothermal, homogeneous emitter is defined as the ratio of the actual emitted radiance to the radiance emitted from a blackbody (Figure 1) at the same thermodynamic temperature (Norman and Becker 1995), ϵλ= R~λ~/B~λ~. Emissivity is an intrinsic property of the surface material and is an independent measurement from the surface temperature, which varies with irradiance, local atmospheric conditions, time of day, and specific conditions causing elevated temperature (e.g., wildfires, volcanic eruptions, etc.). The emissivity of most natural Earth surfaces varies from \~0.7 to close to 1.0, for the TIR wavelength (8--13 μm) for spatial scales \<100 m. Narrowband emissivities less than 0.85 are typical for most desert and semi-arid areas due to the strong quartz absorption feature (Reststrahlen band) between the 8.0 and 9.5 μm, whereas the emissivity of green vegetation and water are generally greater than 0.95 and spectrally flat in the TIR. Dry and senesced vegetation as well as ice and snow can have lower emissivity values in the wavelengths longer than 10 μm.
 
@@ -107,9 +146,16 @@ The spectral are plotted in Figure 4 at full spectral resolution (2 cm^-1^) and 
 
 *Figure 4: TIR (8.0 – 13.0 µm) spectral emissivity endmembers chosen for testing and eventual implementation of the SM Algorithm. Top: laboratory spectral resolution. Bottom: spectra resampled to the OTTER TIR spectral resolution. Data from: ASU Spectral Library (Christensen et al., 2000).*
 
-### 4.4. SM Algorithm Testing
+##  4. Uncertainty Analysis
 
-#### 4.4.1. Kelso Dunes
+NASA has identified a major need to develop long-term, consistent products valid across multiple missions, with well-defined uncertainty statistics addressing specific Earth-science questions. These products are termed Earth System Data Records (ESDRs).
+
+*Completed once final algorithm choice is determined.*
+
+
+## 5. Cal/Val: SM Algorithm Testing
+
+### 5.1. Kelso Dunes
 
 The Kelso Dunes are located in the eastern Mojave Desert,California,\~95 km west of the California-Arizona border. The rocks that compose the mountain ranges surrounding the dunes range from metamorphosed Proterozoic island-arc remnants, which form much of the southern Kelso Mountains, to Paleozoic metasedimentary rocks that compose the majority of the northern Granite and portions of the Providence Mountains, to Tertiary rhyolite in the Providence Mountains (Jennings, 1961; Bishop, 1963). Also present is the Teutonia batholith, the dominant intrusive rock in the eastern Mojave Desert. It was emplaced throughout later Mesozoic time and ranges compositionally from monzonite to granodiorite (Beckerman et al., 1982). In the vicinity of the dunes, the batholith is primarily a quartz monzonite (McDonald and McFadden, 1994), weathering to 1 cm grus of alkali feldspar and plagioclase with lesser amounts of quartz.
 
@@ -124,37 +170,6 @@ Daytime TIR airborne data were acquired over the Kelso Dunes region, southern Ca
 ![image](media/image2.png)
 
 *Figure 6: (a) ASTER GEDv4 monthly emissivity showing increasing emissivity due to vegetation green up from summer rainfall over the Sahel, Senegal, from March to September 2004 and (b) corresponding emissivity uncertainty estimate (%). (c) ASTER GEDv4 monthly emissivity showing decreasing emissivity with snowmelt from January to June 2004 over the Rocky Mountains in Colorado and (d) corresponding emissivity uncertainty estimate (%). (Hulley et al., 2015).*
-
-##  5. Uncertainty Analysis
-
-NASA has identified a major need to develop long-term, consistent products valid across multiple missions, with well-defined uncertainty statistics addressing specific Earth-science questions. These products are termed Earth System Data Records (ESDRs).
-
-*Completed once final algorithm choice is determined.*
-
-## 6. Scientific Data Set (SDS) Variables
-
-|  **SDS** |    **Long Name**    |   **Data type** |  **Units**  | **Valid Range** |  **Fill Value** |  **Scale Factor**  | **Offset** | **Group** | **SDS** |
-|  Amph% |      Amphibole Percentage       |       Int8  |          %   |       1-255   |          0    |
-|  Carb%  |     Carbonate Percentage       |       Int8    |        %  |        1-255    |         0     |
-|  Mica%   |    Mica Percentage            |       Int8   |         %   |       1-255     |        0    |
-|  Oliv%    |   Olivine Percentage        |        Int8    |        %    |      1-255      |       0    |
-|  Plag% |      Plagioclase Feldspar Percentage  | Int8     |       %   |       1-255       |      0   |
-|  Kspr%  |     Potassium Feldspar Percentage    | Int8      |      %   |       1-255  |           0  |
-|  Pyrx%   |    Pyroxene Percentage    |           Int8  |          %   |       1-255   |          0   |
-|  Qrtz%    |   Quartz Percentage       |          Int8   |         %    |      1-255    |         0  |
-|  Gyps%    |   Gypsum Percentage        |         Int8    |        %   |       1-255     |        0   |
-|  Bb%      |   Blackbody Percentage      |        Int8     |       %     |     1-255      |       0    |                               
-|  TIR1-res |   TIR Band 1 Residual Error  |       Float16   |      n/a   |     0-65535     |      0     |                              
-|  TIR2-res |   TIR Band 2 Residual Error   |      Float16    |     n/a   |      0-65535     |      0      |                             
-|  TIR3-res  |  TIR Band 3 Residual Error    |     Float16     |    n/a   |      0-65535      |     0       |                            
-|  TIR4-res  |  TIR Band 4 Residual Error     |    Float16 |        n/a   |      0-65535       |    0    |
-|  TIR5-res  |  TIR Band 5 Residual Error   |      Float16  |       n/a   |      0-65535        |   0     |                              
-|  TIR6-res  |  TIR Band 6 Residual Error    |     Float16   |      n/a   |      0-65535   |        0  |
-|  RMS-err   |  RMS Error        |                 Float16    |     n/a   |      0-65535    |       0   |
-|  WPS      |   Wt% silica        |                Float16     |    %     |     0-65535      |     0  |
-|  QC       |   Data Quality       |               Int8         |   n/a   |      1-255        |     0 |
-
-*Table 2. The Scientific Data Sets (SDSs) for the L3 SBG Surface Mineralogy (SM) product*
 
 #### Acknowledgements
 
