@@ -17,7 +17,6 @@ NASA Jet Propulsion Laboratory 329A
 
 ##  1. Introduction
 
-### 1.1. Identification
 This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.
 
 This document outlines the theory and methodology for generating the OTTER Level-3 (L3) surface mineralogy (SM) product. The SM product uses the L2 TIR surface emissivity data as input together with a spectral library of the most common Earth surface minerals acquired in emission in the laboratory at 2 cm^-1^ resolution (Christensen et al., 2000). Most silicates, carbonates, and other rock-forming minerals have diagnostic spectral features in the TIR regions characterized by the strongest absorption bands also known as Reststrahlen features (Figure 1). The SM algorithm uses the principal of linear spectral mixing in TIR region where the larger absorption coefficients typical of most rock-forming minerals limit photon transmission and scattering within the mineral grains. The emitted spectrum, therefore, has spectral features in linear proportion to the areal abundance of those minerals in the unknown sample (Ramsey and Christensen, 1998). In contrast, this scattering is more prevalent in the visible short-wave infrared (VSWIR) causing non-linearity in the reflectance spectrum and requiring more complex mapping approaches to mineral identification (Clark et al., 2003, Connelly et al., 2021).
