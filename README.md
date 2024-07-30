@@ -15,416 +15,223 @@ Federico Rabuffi (he/him)<br>
 NASA Jet Propulsion Laboratory 329A
 
 
-# Abstract
-The 2017-2027 Decadal Survey for Earth Science and Applications from Space (ESAS 2017) was released in January 2018. ESAS 2017 was driven by input from the scientific community and policy experts and provides a strategic vision for the next decade of Earth observation that informs federal agencies responsible for the planning and execution of civilian space-based Earth-system programs in the coming decade. These include the National Aeronautics and Space Administration (NASA), the National Oceanic and Atmospheric Administration (NOAA), and the U.S. Geological Survey (USGS). NASA has, thus far, utilized this document as a guide to inform exploration of new Earth mission concepts that are later considered as can-didates for fully funded missions. High-priority emphasis areas and targeted observables include global-scale Earth science questions related to hydrology, ecosystems, weather, climate, and solid earth. One of the Designated Observables (DO’s) identified by ESAS 2017 was Surface Biology and Geology (SBG) with a goal to acquire concurrent global hyperspectral visible to shortwave infrared (VSWIR; 380–2500 nm) and multispectral midwave and thermal infrared (MWIR: 3–5 μm; TIR: 8–12 μm) image data at high spatial resolution (~30 m in the VSWIR and ~ 60 m in the TIR) at sub-monthly temporal resolution globally. The final sensor characteristics will be determined during the mission formulation phase, but ESAS 2017 provides guidance for a VSWIR instrument with 30–45 m pixel resolution, ≤16 day global revisit, SNR > 400 in the VNIR, SNR > 250 in the SWIR, and 10 nm sampling in the range 380–2500 nm. It also recommends a TIR instrument with more than five channels in 8–12 μm, and at least one channel at 4 μm, ≤60 m pixel resolution, ≤3 day global revisit, and noise equivalent delta temperature (NEdT) ≤0.2 K (NASEM, 2018; Schimel et al., 2020). Alone, SBG will provide a comprehensive global monitoring for multiple scientific disciplines. Complemented with systems like Landsat and Sentinel-2 VSWIR, global change processes with faster than 16-day global change rates can be mapped. Further, complimented with planned TIR systems such as LSTM and TRISHNA, the temporal revisit could be as frequent as 1-day at the equator, making the system excellent for tracking dynamic thermal features and hazards. This document will grow to fully describe the planned Level-3 Surface Mineralogy (SM) product for the SBG TIR data.
-
-_______________________________________________________________________________________________________________________
-<i>This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.</i>
-_______________________________________________________________________________________________________________________
-
-
-## Level 3 Algorithm Theoretical Basis Document (ATBD): [click here](/SBG_L3_ATBD_SM_20231107.pdf)
-## Level 3 Product Specification Document (PSD): [click here](/SBG-TIR_PSD_L3_SM_20231107.pdf)
-
-
 ##  1. Introduction
 
 ### 1.1. Identification
+This repository will gradually expand to contain the Surface Biology and Geology Thermal Infrared (SBG-TIR) OTTER level 3 surface mineralogy (L3-SM) data product algorithm.
 
-This is the Product Specification Document (PSD) for Level 3 (L3) Surface Mineralogy (SM) data product of NASA's Surface Biology and Geology -- Thermal Infrared (SBG-TIR) mission. The SBG-TIR L3 SM product provides surface minerology maps generated from data acquired by the SBG-TIR radiometer instrument according to the SM algorithm described in the SBG-TIR L3 SM Algorithm Theoretical Basis Document (ATBD) (D- 1000788).
+This document outlines the theory and methodology for generating the OTTER Level-3 (L3) surface mineralogy (SM) product. The SM product uses the L2 TIR surface emissivity data as input together with a spectral library of the most common Earth surface minerals acquired in emission in the laboratory at 2 cm^-1^ resolution (Christensen et al., 2000). Most silicates, carbonates, and other rock-forming minerals have diagnostic spectral features in the TIR regions characterized by the strongest absorption bands also known as Reststrahlen features (Figure 1). The SM algorithm uses the principal of linear spectral mixing in TIR region where the larger absorption coefficients typical of most rock-forming minerals limit photon transmission and scattering within the mineral grains. The emitted spectrum, therefore, has spectral features in linear proportion to the areal abundance of those minerals in the unknown sample (Ramsey and Christensen, 1998). In contrast, this scattering is more prevalent in the visible short-wave infrared (VSWIR) causing non-linearity in the reflectance spectrum and requiring more complex mapping approaches to mineral identification (Clark et al., 2003, Connelly et al., 2021).
 
-### 1.2. Purpose and Scope
+The SM product is applied to the at-surface TIR emissivity data derived from the L2 land surface temperature and emissivity (LSTE) product. It will be applied to a limited subset of OTTER data determined using a seasonally adjusted global emissivity mask (e.g., Hulley et al., 2015). Only OTTER data with an average emissivity of \< 0.92 (avoiding significant vegetation cover) and an average temperature \> 0 C (avoiding snow and ice), which corresponds to \~ 30% of the Earth's land surface, will be mapped using the SM algorithm. The emission spectrum from any pixel meeting these criteria is modeled using the pre-determined spectral library as input and producing a best-fit suite of mineral endmember images plus their corresponding residual error images. A root-mean-squared (RMS) error image is also produced to assess the overall goodness-of-fit of the model. Finally, a weight percent silica (WPS) image is also produced using the approach of Hook et al. (2005).
 
-This PSD describes the standard Level 3 SM product generated using the SM algorithm. These include the detailed descriptions of the format and contents of the product and ancillary files that will be delivered to the Land Process Distributed Active Archive Center (LP-DAAC).
+![image](media/image3.png)
+ *Figure 1: TIR (8.0 – 13.0 µm) spectral emissivity of quartz and microcline (potassium feldspar) showing the diagnostic Reststrahlen emissivity features for both minerals. The inclusion of a sixth TIR band at ~ 10.3 mm allows better discrimination of these primary rock-forming minerals using the SM algorithm. Data from: ASU Spectral Library (Christensen et al., 2000).*
+ 
+The SM data will be assessed and validated throughout the mission using pseudo-invariant sand dune sites in the Western United States, Africa, and China (Hulley and Baldridge, 2013; Helder et al., 2010). Sand dunes present ideal calibration sites for TIR emissivity-based compositional studies because they have well-mixed, unimodal surfaces with low percentages of vegetation and shadows (Ramsey et al., 1999; Scheidt and Ramsey, 2010; Scheidt et al., 2011).
 
-### 1.3.Mission Overview
+The remainder of the document will discuss the SBG instrument characteristics, provide a background on TIR remote sensing, give a full description and background on the SM algorithm, provide quality assessment, discuss numerical simulation studies and, finally, outline a validation plan.
 
-NASA's SBG mission was a Designated Observable (DO) identified in the National Academies of Sciences, Engineering and Medicine (NASEM) 2017 Decadal Survey. The Decadal Survey document presented a clear vision for the combined roles of visible to shortwave infrared imaging spectroscopy and multispectral or hyperspectral thermal infrared image data in addressing terrestrial and aquatic ecosystems and other elements of biodiversity, geology, natural hazards, the water cycle, and applied sciences topics relevant to many areas with societal benefits. 
+## 2. Theory
 
-The SBG-TIR portion of the mission develops the IR multispectral instrument. The SBG-TIR instrument measures the emitted radiance of the Earth surface and uses that information to better understand the dynamics of Earth's changing surface geology and biology, ground/water temperature, snow reflectivity, active geologic processes, vegetation traits, and algal biomass.
+### 2.1. Mid-wave and Thermal Infrared Remote Sensing Background
 
-SBG-TIR mission addresses the following most important and very important priorities as highlighted by the Decadal Survey:
-highlighted by the Decadal Survey:
-	
-Most Important
-Ecosystems
-E1a: Quantify the distribution of the functional traits, functional types, and composition of vegetation and marine biomass, spatially and over time.
-E1c: Quantify the physiological dynamics of terrestrial and aquatic primary producers.
-E2a: Quantify the fluxes of CO2 and CH4 globally at spatial scales of 100 to 500 km and monthly temporal resolution with uncertainty <25% between land ecosystems and atmosphere and between ocean ecosystems and atmosphere.
+The at-sensor measured radiance in the infrared region (3--13 µm) consists of a combination of different terms from surface emission, solar reflection, and atmospheric emission and attenuation. The Earth-emitted radiance is a function of the temperature and emissivity of the surface, which is then attenuated by the atmosphere on its path to the satellite. The emissivity of an isothermal, homogeneous emitter is defined as the ratio of the actual emitted radiance to the radiance emitted from a blackbody (Figure 1) at the same thermodynamic temperature (Norman and Becker 1995), ϵλ= R~λ~/B~λ~. Emissivity is an intrinsic property of the surface material and is an independent measurement from the surface temperature, which varies with irradiance, local atmospheric conditions, time of day, and specific conditions causing elevated temperature (e.g., wildfires, volcanic eruptions, etc.). The emissivity of most natural Earth surfaces varies from \~0.7 to close to 1.0, for the TIR wavelength (8--13 μm) for spatial scales \<100 m. Narrowband emissivities less than 0.85 are typical for most desert and semi-arid areas due to the strong quartz absorption feature (Reststrahlen band) between the 8.0 and 9.5 μm, whereas the emissivity of green vegetation and water are generally greater than 0.95 and spectrally flat in the TIR. Dry and senesced vegetation as well as ice and snow can have lower emissivity values in the wavelengths longer than 10 μm.
 
-Hydrology
-H1c: Quantify rates of snow accumulation, snowmelt, ice melt, and sublimation from snow and ice worldwide at scales driven by topographic variability.
+The atmosphere also emits TIR radiation, a percentage of which reaches the sensor directly as \"path radiance,\" whereas some amount is radiated downward to the surface (irradiance) and reflected back to the sensor. This is commonly known as the reflected downwelling sky irradiance. One effect of the sky irradiance is the reduction of the spectral contrast of the emitted surface radiance, due to Kirchhoff\'s law. Assuming the spectral variation in emissivity is small (Lambertian assumption) and using Kirchhoff\'s law to express the hemispherical-directional reflectance as directional emissivity (ρ~λ~=1-ϵ~λ~), the at-sensor measured radiance in the infrared spectral region is a combination of three primary terms: the Earth-emitted radiance, reflected downwelling radiance (thermal + solar components), and total atmospheric path radiance (thermal + solar components).
 
-Solid Earth
-S1a: Measure the pre-, syn-, and post eruption surface deformation and products of Earth’s entire active land volcano inventory at a time scale of days to weeks.
+The Temperature Emissivity Separation (TES) Algorithm originally created for ASTER TIR (Gillespie et al., 1998) data will be used to derive surface temperature and emissivity from the OTTER radiance data. The algorithm combines and improves upon some core features from previous temperature emissivity separation algorithms. TES combines the normalized emissivity method (NEM), the ratio, and the minimum-maximum difference (MMD) algorithm to retrieve temperature and a full emissivity spectrum. The NEM algorithm is used to estimate temperature and iteratively remove the sky irradiance, from which an emissivity spectrum is calculated, and then ratioed to their mean value in the ratio algorithm. At this point, only the shape of the emissivity spectrum is preserved, but not the amplitude. In order to compute an accurate temperature, the correct amplitude is then found by relating the minimum emissivity to the spectral contrast (MMD). Once the correct emissivity values are found, a final temperature can be calculated with the maximum emissivity value. Additional improvements involve a refinement of $\epsilon_{\max}$ in the NEM module and refining the correction for sky irradiance using the $\varepsilon_{\min}$-MMD final emissivity and temperature values. Numerical modeling studies showed that TES can recover temperatures to within 1.5 K and emissivity values to within 0.015 over most scenes, assuming well calibrated, accurate radiometric measurements with a minimum of noise (Gillespie et al. 1998).
 
-Very Important
-Ecosystems
-E1a: Quantify the distribution of the functional traits, functional types, and composition of vegetation and marine biomass, spatially and over time.
+### 3.2.  Compositional Detection in the TIR
 
-Hydrology
-H2a: Quantify how changes in land use, water use, and water storage affect evapotranspiration rates, and how these in turn affect local and regional precipitation systems, groundwater recharge, temperature extremes, and carbon cycling.
-H4a: Monitor and understand hazard response in rugged terrain and land margins to heavy rainfall, temperature and evaporation extremes, and strong winds at multiple temporal and spatial scales. This socioeconomic priority depends on success of addressing H1b and H1c, H2a, and H2c.
+The emission spectra from laboratory samples or pixels in a TIR image that are comprised of more than one mineral reflect those mineral endmembers by a combination of their characteristic spectral features. Perhaps more importantly, under most circumstances, those features are a linear combination of the areal percentage of the mineral endmembers themselves (Figure 2). The assumption of linear mixing of thermal radiant energy is valid due to the fact that most geologically significant minerals have very high absorption coefficients in the TIR, resulting in a much shorter path length and less scattering for the emitted photons. As a result, the majority of the energy detected by a sensor has interacted with only one surface particle (Ramsey and Christensen, 1998, *REFS*).
 
-Solid Earth
-S1c: Forecast and monitor landslides, especially those near population centers.
-S2b: Assess surface deformation (<10 mm), extent of surface change (<100 m spatial resolution) and atmospheric contamination, and the composition and temperature of volcanic products following a volcanic eruption (hourly to daily temporal sampling).
+![image](media/image7.png)
 
-Climate
-C3a: Quantify CO2 fluxes at spatial scales of 100-500 km and monthly temporal resolution with uncertainty <25% to enable regional-scale process attribution explaining year-to-year variability by net uptake of carbon by terrestrial ecosystems (i.e., determine how much carbon uptake results from processes such as CO2 and nitrogen fertilization, forest regrowth, and changing ecosystem demography.)
+*Figure 2: Emission spectra of the best-case separation of feldspar and quartz derived from the heavy-liquid technique. (A) Feldspar. (B) Quartz. Each spectrum is plotted with a pure library end member for comparison. From Ramsey and Christensen (1998).*
 
-Weather
-W3a: Determine how spatial variability in surface characteristics modifies regional cycles of energy, water and momentum (stress) to an accuracy of 10 W/m2 in the enthalpy flux, and 0.1 N/m2 in stress, and observe total precipitation to an average accuracy of 15% over oceans and/or 25% over land and ice surfaces averaged over a 100 × 100 km region and 2- to 3-day time period.
+Upon mixing, the spectral features from surface particles are retained in proportion to their areal extent. For example, Ramsey and Christensen (1998) showed this in spectra from Kelso Dunes, CA. The individual mineral grains in sand samples were separated using a heavy liquid technique, which proved to be only partially successful (Figure 2). Contamination of each spectrum by the other mineral is visible in the spectral features being most evident in the quartz spectrum, where 34% feldspar still remained. This contamination shows as a reduction in contrast of the primary absorption band at 1150 cm^-1^, the development of band shoulder at 1000 cm^-1^, and several smaller absorption bands between 600 cm^-1^ and 700 cm^-1^.
 
-The SBG-TIR mission answers these questions by accurately measuring the emitted radiance of Earth’s surface in the mid-infrared (MIR) and TIR spectral regions using a multispectral radiometer. The instrument measures radiance data in 8 spectral bands from 3.95 to 12.05 μm with approximately 60 meter spatial resolution at nadir and a nominal revisit time of 3 days at the equator.
+#### 3.2.1. Spectral Mixture Analysis (SMA)
 
-### 1.4. Applicable and Reference Documents
+This allows for a relatively straight forward approach to spectral analysis using some variation of linear spectral mixture analysis (Heinz 2001; Somers et al. 2011; Tompkins et al. 1997). 
+ 
+Assuming that the pure mineral spectra (i.e., the endmembers) are known, TIR spectra can be linearly deconvolved using the least-squares approach (equation 2) to ascertain the mineralogic percentages. For image-based analyses, this results in one image per endmember together with several checks on the accuracy of that model fit. A residual error image is produced for each TIR band, which is simply the measured -- the modeled emissivity in that spectral band. Areas of high residual error indicate a poor model fit in that spectral band with the chosen endmembers. This difference is a critical measure of the retrieval algorithm\'s fit, and easily visualized where displayed versus wavelength, or as an image in the case of remotely gathered data (Gillespie et al., 1990). High residual errors at specific wavelengths indicate the possibility of an unmodeled absorption feature not present in either the endmember or mixture spectrum. An examination of residuals may also reveal nonlinear behavior at certain wavelengths as well as highlight areas of poor atmospheric correction and/or low instrument signal to noise (SNR).
 
-"Applicable" documents levy requirements on the areas addressed in this document. "Reference" documents are identified in the text of this document only to provide additional information to readers. Unless stated otherwise, the document revision level is Initial Release. Document dates are not listed, as they are redundant with the revision level.
+A singular goodness-of-fit error image is also produced for each image/model run. The root-mean-squared (RMS) error image becomes invaluable in order to assess the overall quality of a given algorithm iteration. For an instrument with (m) wavelength bands, the RMS is related to the per-band residual error (δ(λ)).
 
-#### 1.4.1. Applicable Documents
+In the most common approach to spectral deconvolution, the number of endmembers modeled must be ≤ the number of spectral bands. Thus, for hyperspectral data, the number of possible endmembers can be quite high (to the point of being geologically implausible). However, for multispectral data, the limited number of spectral bands commonly places a tight constraint on the number of endmembers. This constraint may be acceptable if one is modeling the highest percentage two or three mineral endmembers using five or six band TIR data. If more than five or six endmember are present (or if one wants to test for the presence of many unknown minerals), a different approach is required such as the Multiple Endmember SMA (MESMA), which uses a combinatorial approach to testing all possible endmember combinations for the one producing the best fit (e.g., the lowest RMS error).
 
-SBG-TIR Science Data Management Plan (TBD)
+#### 3.2.2. Multiple Endmember SMA (MESMA)
 
-SBG-TIR Level 1 Algorithm Theoretical Basis Documents (TBD)
+Linear SMA assumes that a mixed spectrum can be modeled as a linear combination of pure spectra, known as endmembers (Adams et al., 1986; Ramsey and Christensen, 1998). Under ideal conditions, the most accurate fractional estimates can be achieved using the minimum number of endmembers required to account for spectral variability within a mixed pixel (Sabol et al. 1992). Fractional errors occur either where too few endmembers are used, resulting in spectral information not modeled by the existing endmembers; or too many, resulting in incorrect endmember assignment that is used in the model, but not actually present (Roberts et al., 1998). The iterative Multiple Endmember Spectral Mixture Analysis (MESMA) technique can account for within-class variability and is applied by running numerous models for a pixel and selecting one model based on its ability to meet selection criteria and produce the best fit, typically a minimum RMS (Painter et al. 1998). Selection criteria include fractional constraints (minimum and maximum fraction constrains), maximum allowable blackbody fraction, RMSE constraints and a residual constraint set to remove any model that exceeds a threshold over a range of wavelengths. Using this approach, pixel-scale limits in spectral dimensionality are recognized despite the considerable spectral variability within a scene. The model constraints are variably selectable, whereby MESMA can also be run in an unconstrained mode. Previous studies have found that the flexible MESMA approach resulted in the majority of pixels in an image being modeled with only two-endmember models (Roberts et al. 1998). For example, Powell and Roberts (2008) found that natural landscapes in Brazil required only two-endmember models, disturbed regions required three- and urban areas required four-endmember models.
 
-SBG-TIR Level 1 Algorithm Specification Document (TBD)
+## 4. Surface Mineralogy (SM) Algorithm
 
-SBG-TIR Level 2 Algorithm Theoretical Basis Documents (TBD)
+The surface mineralogy (SM) algorithm for SBG must rapidly and accurately detect mineral abundances across Earth's low vegetation surfaces (i.e., dunes, volcano, wildland fire scars, arid regions) with a low RMSE. Two main groups of algorithms were tested: SMA and MESMA, based on the widespread usage in the community and previous development and refinement activities. The testing approach and the results are first described below with the final SM algorithm implementation presented in §4.4.2 and §4.5.
 
-SBG-TIR Level 2 Algorithm Specification Document (TBD)
+### 4.1. Test Data Creation
 
-SBG-TIR Project Level 3 Science Data System Requirements (TBD).
+Five simulated OTTER datasets were created from airborne MASTER data using the pre-existing MASTER wavelengths or weighted band averages for the OTTER band center positions that did not align with those of MASTER (Figure 3). The data were also spatially resampled to the planned resolution of OTTER and the atmospheric correction was modified for the performance characteristics (e.g., FPA response) and viewing geometry of OTTER. These simulated data were chosen to test many of the SBG geology higher level data products and therefore include data with known thermal anomalies others with no thermally elevated areas. The latter included compositionally varied targets (e.g., Kelso Dunes, Yosemite National Park) for testing the Surface Mineralogy (SM) product algorithms. However, here they served as null test locations for the ETF algorithm. Both day and night time datasets were utilized.
 
-SBG-TIR Level 3 SM Algorithm Theoretical Basis Document (TBD)
+![image](media/image12.png)
 
-#### 1.4.2. Reference Documents
+*Figure 3. False color image data (11.35, 9.07, 8.32 µm: RGB) of the simulated OTTER data used in the ETF algorithm testing process.*
 
-2017-2027 Decadal Survey for Earth Science and Applications from Space (ESAS 2017)
+### 4.2. Algorithm Testing Criteria
 
-SBG Science and Applications Traceability Matrix (SATM)
+Two main previously developed algorithms were considered for testing that utilize an SMA and MESMA approach (Ramsey and Christensen 1998; Roberts et al. 1998). These were chosen based on the availability, accessibility, and high usage across the Earth science community.
 
-### 1.5. SBG-TIR Data Products
+### 4.3. Methodology
 
-SBG-TIR Level 0 data include spacecraft packets that have been pre-processed by the Ground Data System (GDS). Level 1 products include spacecraft engineering data, the time-tagged raw sensor pixels appended with their radiometric calibration coefficients, the blackbody pixels used to generate the calibration coefficients, geolocated and radiometrically calibrated at-sensor radiances of each image pixel, the geolocation tags of each pixel, and the corrected spacecraft attitude data. Level 2 products include the visible near infrared top of atmosphere (VNIR TOA) reflectance, VNIR bottom of atmosphere (BOA) reflectance, the normalized difference vegetation index (NDVI), the surface temperature and emissivity of each spectral band retrieved from the at-sensor radiance data, and a cloud mask. Level 3 products include evapotranspiration, elevated temperature features, and surface minerology data derived from Level 2 data. Level 4 products contain evaporative stress index, water use efficiency, and volcanic activity derived from Level 2 and 3 data.
+#### 4.3.1. Spectral Library Endmember Selection
 
-The four levels of data products are listed in Table 1-1. This document will discuss only the Level 3 SM product.
+Nine spectral endmembers were chosen for the SM product (Table 1). These were selected because they are major rock-forming minerals and are generally considered the most abundant on the Earth's surface (*REF*). The focus of the TIR Surface Mineralogy product is on silicate minerals (with two exceptions), all of which have dominate spectral features in the TIR region. Alteration minerals such as oxides and clays are better detected in the VSWIR region and the focus of that SBG sensor.
 
-Table 1-1: SBG-TIR Product Groups ![Graphical user interface, table
-Description automatically generated with medium confidence](./media/image2.png){width="4.997222222222222in" height="2.584722222222222in"}
+|  **Mineral Name** |  **Mineral Class**  | **Mineral Group**  | **Chemical Formula**          |             **ASU Spectral Library number** |
+| --- | --- | --- | --- | --- |
+|  Andesine     |      silicate      |      feldspar    |        (Ca, Na)(Al, Si)~4~O~8~         |           434  |
+|  Augite       |      silicate      |      pyroxene    |        (Ca,Na)(Mg,Fe,Al,Ti)(Si,Al)~2~O~6~   |      480  |
+|  Calcite      |      carbonate     |                  |        CaCO~3~                              |      527 |
+|  Forsterite   |      silicate      |      olivine     |        Mg~2~SiO~4~                         |       441 |
+|  Gypsum       |      sulfate       |                  |        CaSO~4~ · 2H~2~O                    |       758 |
+|  Hornblende   |      silicate      |      amphibole   |        Ca~2~(Mg,Fe,Al)~5~(Al,Si)~8~O~22~(OH)~2~ |  469 |
+|  Microcline   |      silicate      |      feldspar    |        KAlSi~3~O~8~                             |  490 |
+|  Muscovite    |      silicate      |      mica        |        KAl~2~(AlSi~3~O~10~)(F,OH)~2~             | 449 |
+|  Quartz       |      silicate      |                  |        SiO~4~                                   |  1969 |
 
-[]{#_Toc150275586 .anchor}
+*Table 1: Endmember minerals selected for the SM product spectral library*
 
-## 2. Data Product Organization
+The spectral are plotted in Figure 4 at full spectral resolution (2 cm^-1^) and down sampled to the proposed six band SBG resolution. Importantly, with the addition of the sixth TIR band at 10.3 μm, the spectral diversity of these nine minerals produces distinct spectral shapes in the six-point spectral ensuring little confusion in mapping these minerals in the SBG data. The addition of the tenth blackbody (ε = 1.0 at all wavelengths) endmember provides a way to account for the discrepancy in spectral depth between the laboratory-measured endmember minerals and that of the image-based data. A blackbody endmember image will be produced, however if normalized out of the total percentage per pixel, the remaining endmember percentages will sum to 100%.
 
-### 2.1. Product File Format
+![image](media/image8.png)
 
-All SBG-TIR standard products are stored in the Geographic Tagged Image File Format (GeoTIFF). GeoTIFF is a general purpose file format and programming library for storing scientific data. The GeoTIFF format was originally created by Dr. Niles Ritter with the Open Geospatial Consortium publishing the OGC GeoTIFF standard, which defines the GeoTIFF by specifying requirements and encoding rules for using the Tagged Image File Format (TIFF) for the exchange of georeferenced or geocoded image data. The following sections provide some key elements of GeoTIFF that will be employed in SBG-TIR data products. Complete documentation of the GeoTIFF structure and application software can be found at https://www.ogc.org/standard/geotiff/.
+*Figure 4: TIR (8.0 – 13.0 µm) spectral emissivity endmembers chosen for testing and eventual implementation of the SM Algorithm. Top: laboratory spectral resolution. Bottom: spectra resampled to the OTTER TIR spectral resolution. Data from: ASU Spectral Library (Christensen et al., 2000).*
 
-### 2.2. GeoTIFF Notation
+### 4.4. SM Algorithm Testing
 
-The key concepts of the GeoTIFF Abstract Data Model are Files, Groups, Datasets, Datatypes, Attributes and Property Lists. The following sections provide a brief description of each of these key GeoTIFF concepts.
+#### 4.4.1. Kelso Dunes
 
-#### 2.2.1. GeoTIFF File
+The Kelso Dunes are located in the eastern Mojave Desert,California,\~95 km west of the California-Arizona border. The rocks that compose the mountain ranges surrounding the dunes range from metamorphosed Proterozoic island-arc remnants, which form much of the southern Kelso Mountains, to Paleozoic metasedimentary rocks that compose the majority of the northern Granite and portions of the Providence Mountains, to Tertiary rhyolite in the Providence Mountains (Jennings, 1961; Bishop, 1963). Also present is the Teutonia batholith, the dominant intrusive rock in the eastern Mojave Desert. It was emplaced throughout later Mesozoic time and ranges compositionally from monzonite to granodiorite (Beckerman et al., 1982). In the vicinity of the dunes, the batholith is primarily a quartz monzonite (McDonald and McFadden, 1994), weathering to 1 cm grus of alkali feldspar and plagioclase with lesser amounts of quartz.
 
-A File is the abstract representation of a physical data file. Files are containers for GeoTIFF Objects. These Objects include Groups, Datasets, and Datatypes.
+The Kelso dune field covers more than 100 km^2^ and is contained within a topographic basin bounded by the Kelso, Providence, Granite, and Bristol Mountains to the north, east, south, and west, respectively. Earlier studies estimated the dunes to be mature with 70-90% quartz (Sharp, 1966; Paisley et al., 1991); however, later studies using TIR data and detailed field sampling showed the dunes to have a much higher feldspar and lower quartz content indicating a less mature dune field with sand input from local sources (Ramsey et al., 1999).
 
-#### 2.2.2.GeoTIFF Group
+Daytime TIR airborne data were acquired over the Kelso Dunes region, southern California on September 20, 1999 at 18:47 UTC (10:47 PDT). The algorithms were applied to the emissivity data using five and ten endmembers for the SMA and MESMA approaches, respectively. SMA and MESMA analysis required 6.7 x10^-5^ and 7.4 x10^-7^ seconds per pixel, respectively (Figure 5).
 
-Groups are containers for other Objects, including Datasets, named Datatypes and other Groups. In that sense, groups are analogous to directories that are used to categorize and classify files in standard operating systems.
+![image](media/image9.png)
 
-The notation for files is identical to the notation used for Unix directories. The root Group is "/". Like Unix directories, Objects appear in Groups through "links". Thus, the same Object can simultaneously be in multiple Groups.
+*Figure 5: “Fast” MESMA linear deconvolution mineral mapping results using the 10 endmember spectral library (Fig. 6) and the simulated SBG test data for Kelso Dunes, CA. (a) Plagioclase feldspar (andesine), (b) olivine (augite), (c) calcite, (d) pyroxene (forsterite), (e) gypsum, (f) amphibole (hornblende), (g) potassium feldspar (microcline), (h) mica (muscovite), (i) quartz, (j) blackbody, (k) RMS error, (l) color composite of microcline, quartz, and andesine endmembers in R, G, B, respectively.*
 
-#### 2.2.3. GeoTIFF Dataset
+![image](media/image2.png)
 
-The Dataset is the GeoTIFF component that stores user data. Each Dataset associates with a Dataspace that describes the data dimensions, as well as a Datatype that describes the basic unit of storage element. A Dataset can also have Attributes.
+*Figure 6: (a) ASTER GEDv4 monthly emissivity showing increasing emissivity due to vegetation green up from summer rainfall over the Sahel, Senegal, from March to September 2004 and (b) corresponding emissivity uncertainty estimate (%). (c) ASTER GEDv4 monthly emissivity showing decreasing emissivity with snowmelt from January to June 2004 over the Rocky Mountains in Colorado and (d) corresponding emissivity uncertainty estimate (%). (Hulley et al., 2015).*
 
-#### 2.2.4. GeoTIFF Datatype
+##  5. Uncertainty Analysis
 
-A Datatype describes a unit of data storage for Datasets and Attributes. Datatypes are subdivided into Atomic and Composite Types.
+NASA has identified a major need to develop long-term, consistent products valid across multiple missions, with well-defined uncertainty statistics addressing specific Earth-science questions. These products are termed Earth System Data Records (ESDRs).
 
-Atomic Datatypes are analogous to simple basic types in most programming languages. GeoTIFF Atomic Datatypes include Time, Bitfield, String, Reference, Opaque, Integer, and Float. Each atomic type has a specific set of properties. Examples of the properties associated with Atomic Datatypes are:
+*Completed once final algorithm choice is determined.*
 
--   Integers are assigned size, precision, offset, pad byte order, and are designated as signed or unsigned.
+## 6. Scientific Data Set (SDS) Variables
 
--   Strings can be fixed or variable length and may or may not be null terminated.
+|  **SDS** |    **Long Name**    |   **Data type** |  **Units**  | **Valid Range** |  **Fill Value** |  **Scale Factor**  | **Offset** | **Group** | **SDS** |
+|  Amph% |      Amphibole Percentage       |       Int8  |          %   |       1-255   |          0    |
+|  Carb%  |     Carbonate Percentage       |       Int8    |        %  |        1-255    |         0     |
+|  Mica%   |    Mica Percentage            |       Int8   |         %   |       1-255     |        0    |
+|  Oliv%    |   Olivine Percentage        |        Int8    |        %    |      1-255      |       0    |
+|  Plag% |      Plagioclase Feldspar Percentage  | Int8     |       %   |       1-255       |      0   |
+|  Kspr%  |     Potassium Feldspar Percentage    | Int8      |      %   |       1-255  |           0  |
+|  Pyrx%   |    Pyroxene Percentage    |           Int8  |          %   |       1-255   |          0   |
+|  Qrtz%    |   Quartz Percentage       |          Int8   |         %    |      1-255    |         0  |
+|  Gyps%    |   Gypsum Percentage        |         Int8    |        %   |       1-255     |        0   |
+|  Bb%      |   Blackbody Percentage      |        Int8     |       %     |     1-255      |       0    |                               
+|  TIR1-res |   TIR Band 1 Residual Error  |       Float16   |      n/a   |     0-65535     |      0     |                              
+|  TIR2-res |   TIR Band 2 Residual Error   |      Float16    |     n/a   |      0-65535     |      0      |                             
+|  TIR3-res  |  TIR Band 3 Residual Error    |     Float16     |    n/a   |      0-65535      |     0       |                            
+|  TIR4-res  |  TIR Band 4 Residual Error     |    Float16 |        n/a   |      0-65535       |    0    |
+|  TIR5-res  |  TIR Band 5 Residual Error   |      Float16  |       n/a   |      0-65535        |   0     |                              
+|  TIR6-res  |  TIR Band 6 Residual Error    |     Float16   |      n/a   |      0-65535   |        0  |
+|  RMS-err   |  RMS Error        |                 Float16    |     n/a   |      0-65535    |       0   |
+|  WPS      |   Wt% silica        |                Float16     |    %     |     0-65535      |     0  |
+|  QC       |   Data Quality       |               Int8         |   n/a   |      1-255        |     0 |
 
--   References are constructs within GeoTIFF Files that point to other GeoTIFF Objects in the same file.
+*Table 2. The Scientific Data Sets (SDSs) for the L3 SBG Surface Mineralogy (SM) product*
 
-GeoTIFF provides a large set of predefined Atomic Datatypes. Table 2-1 lists the Atomic Datatypes that are used in SBG-TIR data products.
+#### Acknowledgements
 
-| **GeoTIFF Atomic Datatypes** | **Description** | 
-| --- | --- |
-| BYTE | unsigned, 8-bit, little-endian integer | 
-| SHORT | unsigned, 16-bit, little-endian integer | 
-| LONG | unsigned, 32-bit, little-endian integer | 
-| RATIONAL | 2 unsigned, 8-bit, little-endian integer | 
-| SBYTE | signed, 16-bit, little-endian integer | 
-| SSHOR | signed, 32-bit, little-endian integer | 
-| SLONG | signed, 32-bit, little-endian integer | 
-| SRATIONAL | 2 signed, 32-bit, little-endian integer | 
-| FLOAT | 32-bit, little-endian, IEEE floating point | 
-| DOUBLE | 64-bit, little-endian, IEEE floating point | 
-| ASCII | NULL terminated string | 
-| UNDEFINED | 8-bit byte | 
+The research was carried out at the Jet Propulsion Laboratory, California Institute of Technology, under a contract with the National Aeronautics and Space Administration.
 
-*Table 2-1: GeoTIFF Atomic Datatypes*
+#### References
 
+Adams, J.B., Smith, M.O., Johnson, P.E. (1986). Spectral mixture modeling: A new analysis of rock and soil types at the Viking Lander 1 site. Journal of Geophysical Research: Solid Earth, 91(B8), 8098-8112.
 
-Composite Datatypes incorporate sets of Atomic datatypes. Composite Datatypes include Array, Enumeration, Variable Length and Compound.
+Beckerman, G.M., Robinson, J.P., Anderson, J.L., Frost, E.G., Martin, D.L. (1982). The Teutonia batholith: A large intrusive complex of Jurassic and Cretaceous age in the eastern Mojave Desert, California. Mesozoic-Cenozoic tectonic evolution of the Colorado River region, California, Arizona, and Nevada: San Diego, California, Cordilleran Publishers, 205-220.
 
-The Array Datatype defines a multi-dimensional array that can be accessed atomically.
+Bishop, C.C. (1963). Geologic map of California, needles sheet, scale 1: 250,000. California Division of Mines and Geology Regional Geologic Map Series.
 
-Variable Length presents a 1-D array element of variable length. Variable Length Datatypes are useful as building blocks of ragged arrays.
+Brown, O., Minnett, P. (1999). MODIS infrared sea surface temperature algorithm. Algorithm Theoretical Basis Document Version 2, Univ. of Miami, Miami, Fla.
 
-Named Datatypes are explicitly stored as Objects within an GeoTIFF File. Named Datatypes provide a means to share Datatypes among Objects. Datatypes that are not explicitly stored as Named Datatypes are stored implicitly. They are stored separately for each Dataset or Attribute they describe.
+Christensen, P.R., Bandfield, J.L., Hamilton, V.E., Howard, D.A., Lane, M.D., Piatek, J.L., \... Stefanov, W.L. (2000). A thermal emission spectral library of rock‐forming minerals. Journal of Geophysical Research: Planets, 105(E4), 9735-9739.
 
-None of the SBG-TIR data products employ Enumeration or Compound data types.
+Clark, R.N., Swayze, G.A., Wise, R., Livo, K.E., Hoefen, T.M., Kokaly, R.F., Sutley, S.J. (2003). USGS digital spectral library splib06a. US Geological Survey, Open File Report, 3395.
 
-### GeoTIFF Dataspace
+Coll, C., Caselles, V., Galve, J.M., Valor, E., Niclos, R., Sanchez, J.M., Rivas, R. (2005). Ground measurements for the validation of land surface temperatures derived from AATSR and MODIS data. Remote Sensing of Environment, 97, 288-300.
 
-A Dataspace describes the rank and dimension of a Dataset or Attribute. For example, a "Scalar" Dataspace has a rank of 1 and a dimension of 1. Thus, all subsequent references to "Scalar" Dataspace in this document imply a single dimensional array with a single element.
+Connelly, D.S., Thompson, D.R., Mahowald, N.M., Li, L., Carmon, N., Okin, G.S., Green, R. O. (2021). The EMIT mission information yield for mineral dust radiative forcing. Remote Sensing of Environment, 258, 112380.
 
-Dataspaces provide considerable flexibility to GeoTIFF products. They incorporate the means to subset associated Datasets along any or all of their dimensions. When associated with specific properties, Dataspaces also provide the means for Datasets to expand as the application requires.
+Franke, J., Roberts, D. A., Halligan, K., Menz, G. (2009). Hierarchical multiple endmember spectral mixture analysis (MESMA) of hyperspectral imagery for urban environments. Remote Sensing of Environment, 113(8), 1712-1723.
 
-### GeoTIFF Attribute
+Gillespie, A. R. (1990). Interpretation of residual images: spectral mixture analysis of AVIRIS images, Owens Valley, California. In Proc. second airborne visible/infrared imaging spectrometer (AVIRIS) workshop (pp. 243-270). Jet Propulsion Laboratory.
 
-An Attribute is a small aggregate of data that describes Groups or Datasets. Like Datasets, Attributes are also associated with a particular Dataspace and Datatype. Attributes cannot be subsetted or extended. Attributes themselves cannot have Attributes.
+Gillespie, A., Rokugawa, S., Matsunaga, T., Cothern, J.S., Hook, S., Kahle, A.B. (1998). A temperature and emissivity separation algorithm for Advanced Spaceborne Thermal Emission and Reflection Radiometer (ASTER) images. IEEE Transactions on Geoscience and Remote Sensing, 36, 1113-1126
 
-[]{.mark}
+Heinz, D. C. (2001). Fully constrained least squares linear spectral mixture analysis method for material quantification in hyperspectral imagery. IEEE transactions on geoscience and remote sensing, 39(3), 529-545.
 
-## SBG-TIR File Organization
+Helder, D. L., Basnet, B., Morstad, D. L. (2010). Optimized identification of worldwide radiometric pseudo-invariant calibration sites. Canadian Journal of Remote Sensing, 36(5), 527-539.
 
-### Structure
+Hook, S.J., Dmochowski, J.E., Howard, K.A., Rowan, L.C., Karlstrom, K.E., Stock, J. M. (2005). Mapping variations in weight percent silica measured from multispectral thermal infrared imagery---Examples from the Hiller Mountains, Nevada, USA and Tres Virgenes-La Reforma, Baja California Sur, Mexico. Remote Sensing of Environment, 95(3), 273-289. []{.mark}
 
-SBG-TIR data products follow a common convention for all GeoTIFF Files. Use of this convention provides uniformity of data access and interpretation.
+Hulley, G.C., Hook, S.J., Abbott, E., Malakar, N., Islam, T., Abrams, M. (2015). The ASTER Global Emissivity Dataset (ASTER GED): Mapping Earth\'s emissivity at 100 meter spatial scale. Geophysical Research Letters, 42, 7966-7976.
 
-The SBG-TIR Project uses GeoTIFF Groups to provide an additional level of data organization. All metadata that pertain to the complete data granule are members of the "/Metadata" Group. All other data are organized within Groups that are designed specifically to handle the structure and content of each particular data product.
+Hulley, G., Baldridge, A. (2013). Validation of thermal infrared (TIR) emissivity spectra using pseudo-invariant sand dune sites. In Thermal Infrared Remote Sensing: Sensors, Methods, Applications (pp. 515-527). Dordrecht: Springer Netherlands.
 
-### Data
+Jennings, C.W. (1961). Geologic map of California: Kingman sheet, scale 1: 250,000. California Division of Mines and Geology, Sacramento, CA.
 
-All data in GeoTIFF files are stored in individual Datasets. All related Datasets in an SBG-TIR product are assigned to an GeoTIFF Group. A standard field name is associated with each Dataset. The field name is a unique string identifier. The field name corresponds to the name of the data element the Dataset stores. This document lists these names with the description of each data element that they identify.
+McDonald, E., McFadden, L.D., McGill, S.F., Ross, T. M. (1994). Quaternary stratigraphy of the Providence Mountains piedmont and preliminary age estimates and regional stratigraphic correlations of Quaternary deposits in the eastern Mojave Desert, California. Quaternary stratigraphy and dating methods: Understanding geologic processes and landscape evolution in southern California, in McGill, SF, and Ross, TM, eds., Geological investigations of an active margin: Geological Society of America, Cordilleran Section Guidebook, 205-210.
 
-Each Dataset is associated with an GeoTIFF Dataspace and an GeoTIFF Datatype. They provide a minimally sufficient set of parameters for reading the data using standard GeoTIFF tools.
+National Academies of Sciences, Engineering, and Medicine (NASEM). (2019). Thriving on our changing planet: A decadal strategy for Earth observation from space. National Academies Press.
 
-### Element Types
+Norman, J.M., Becker, F. (1995). Terminology in thermal infrared remote sensing of natural surfaces. Agricultural and Forest Meteorology, 77(3-4), 153-166.
 
-SBG-TIR GeoTIFF employs the Data Attribute "Type" to classify every data field as a specific data type. The "Type" is an embellishment upon the standard GeoTIFF Datatypes that is designed specifically to configure SBG-TIR data products.
+Painter, T.H., Dozier, J., Roberts, D.A., Davis, R.E., Green, R.O. (2003). Retrieval of subpixel snow-covered area and grain size from imaging spectrometer data. Remote Sensing of Environment, 85(1), 64-77.
 
-Table 2-2 lists all of the "Type" strings that appear in the SBG-TIR data products. The table maps each SBG-TIR "Type" to a specific GeoTIFF Datatype in both the GeoTIFF file and in the data buffer. The table also specifies the common conceptual data type that corresponds to the "Type" in SBG-TIR executable code.
+Paisley, E.C., Lancaster, N., Gaddis, L.R., Greeley, R. (1991). Discrimination of active and inactive sand from remote sensing: Kelso Dunes, Mojave Desert, California. Remote Sensing of Environment, 37(3), 153-166.
 
-|**Type** | **GeoTIFF Datatype (File)** | **GeoTIFF Datatype (Buffer)** | **Concetual Type** | 
-| --- | --- | --- | --- |
-| Unsigned8 | BYTE | | unsigned integer |
-| NULL-terminated8 | ASCII | | unsigned integer |
-| Unsigned16 | SHORT | | unsigned integer |
-| Unsigned32 | LONG | | unsigned integer |
-| 2 Unsigned32 | RATIONAL | | unsigned integer |
-| Signed8 | SBYTE | | unsigned integer |
-| 8-bit | UNDEFINE | | unsigned integer |
-| Signed16 | SSHORT | | unsigned integer |
-| Signed32 | SLONG | | unsigned integer |
-| 2 Signed32 | SRATIONAL | | unsigned integer |
-| Float32 | FLOAT | | unsigned integer |
-| Float64 | DOUBLE | | unsigned integer |
-*Table 2-2: Element Type Definitions*
+Powell, R.L., Roberts, D. A. (2008). Characterizing variability of the urban physical environment for a suite of cities in Rondonia, Brazil. Earth Interactions, 12(13), 1-32.
 
+Prata, A.J. (1994). Land-Surface Temperatures Derived from the Advanced Very High-Resolution Radiometer and the Along-Track Scanning Radiometer .2. Experimental Results and Validation of AVHRR Algorithms. Journal of Geophysical Research-Atmospheres, 99, 13025-13058
 
-### File Level Metadata
+Price, J.C. (1984). Land surface temperature measurements from the split window channels of the NOAA 7 Advanced Very High Resolution Radiometer. Journal of Geophysical Research, 89, 7231-7237
 
-All metadata that describe the full content of each granule of the SBG-TIR data product are stored within the explicitly named "/Metadata" Group. Metadata are handled using exactly the same procedures as those that are used to handle data. The contents of each Attribute that stores metadata conform to one of the SBG-TIR Types. Most metadata elements are stored as scalars. A few metadata elements are stored as arrays. The metadata appear in a set of GeoTIFF Groups under the "/Metadata" Group. These GeoTIFF Groups contain a set of GeoTIFF Attributes.
+Ramsey, M.S., Christensen, P.R., Lancaster, N., Howard, D.A. (1999). Identification of sand sources and transport pathways at the Kelso Dunes, California using thermal infrared remote sensing, Geological Society of America Bulletin, 111, 646-662.
 
-### Local Metadata
+Ramsey, M.S., Christensen, P. R. (1998). Mineral abundance determination: Quantitative deconvolution of thermal emission spectra. Journal of Geophysical Research: Solid Earth, 103(B1), 577-596.
 
-SBG-TIR standards incorporate additional metadata that describe each GeoTIFF Dataset within the GeoTIFF file. Each of these metadata elements appear in an GeoTIFF Attribute that is directly associated with the GeoTIFF Dataset. Wherever possible, these GeoTIFF Attributes employ names that conform to the Climate and Forecast (CF) conventions. Table 2-3 lists the CF names for the GeoTIFF Attributes that SBG-TIR products typically employ.
+Roberts, D.A., Gardner, M., Church, R., Ustin, S., Scheer, G., Green, R. O. (1998). Mapping chaparral in the Santa Monica Mountains using multiple endmember spectral mixture models. Remote sensing of environment, 65(3), 267-279.
 
-| **CF Compliant Attribute Name** | **Description** | **Required?** | 
-| --- | --- | --- |
-| Units | Units of measure.  Appendix A lists applicable units for various data elements in this product. | Yes |
-| valid_max | The largest valid value for any element in the Dataset.  The data type in valid_max matches the type of the associated Dataset.  Thus, if the associated Dataset stores float32 values, the corresponding valid_max will also be float32. | No |
-| valid_min | The smallest valid value for any element in the Dataset.  The data type in valid_min matches the type of the associated Dataset.  Thus, if the associated Dataset stores float32 values, the corresponding valid_min will also be float32. | No |
-| _FillValue | Specification of the value that will appear in the Dataset when an element is missing or undefined.  The data type of _FillValue matches the type of the associated Dataset.  Thus, if the associated Dataset stores float32 values, the corresponding _FillValue will also be float32. Datasets that do not have a fill value will omit this attribute. | No |
-| long_name | A descriptive name that clearly describes the content of the associated Dataset. | Yes |
+Sabol, D.E., Adams, J.B., Smith, M.O. (1992). Quantitative subpixel spectral detection of targets in multispectral images. Journal of Geophysical Research: Planets, 97(E2), 2659-2672.
 
-*Table 2-3: SBG-TIR Specific Local Attributes*
+Scheidt, S., Lancaster, N., Ramsey, M. (2011). Eolian dynamics and sediment mixing in the Gran Desierto, Mexico, determined from thermal infrared spectroscopy and remote-sensing data. Bulletin, 123(7-8), 1628-1644.
 
-## Data Definition Standards 
+Scheidt, S., Ramsey, M., Lancaster, N. (2010). Determining soil moisture and sediment availability at White Sands Dune Field, New Mexico, from apparent thermal inertia data. Journal of Geophysical Research: Earth Surface, 115(F2).
 
-The following sections of this document specify the characteristics and definitions of every data element stored in the SBG-TIR data products. Table 2-4 defines each of the specific characteristics that are listed in those sections. Some of these characteristics correspond with the SBG-TIR GeoTIFF Attributes that are associated with each Dataset. Data element characteristics that correspond to SBG-TIR GeoTIFF Attributes bear the same name. The remaining characteristics are descriptive data that help users better understand the data product content.
+Schimel, D.S., Poulter, B. (2022, March). The Earth in Living Color-NASA\'s Surface Biology and Geology Designated Observable. In 2022 IEEE Aerospace Conference (AERO) (pp. 1-6). IEEE.
 
-In some situations, a standard characteristic may not apply to a data element. In those cases, the field contains the character string 'n/a'. Hexadecimal representation sometimes indicates data content more clearly. Numbers represented in hexadecimal begin with the character string '0x'.
+Sharp, R.P. (1966). Kelso Dunes, Mojave Desert, California. Geological Society of America Bulletin, 77(10), 1045-1074.
 
-| **Characteristic** | **Definition** |
-| --- | --- |
-| Type | The data representation of the element within the storage medium. The storage class specification must conform to a valid SBG type. |
-| Units | Units of measure.  Typical values include “deg”, “degC”, “Kelvin”, “meters/second”, “meters”, “m**2”, “seconds” and “counts”.  Appendix A includes references to important data measurement unit symbols. |
+Somers, B., Asner, G. P., Tits, L., Coppin, P. (2011). Endmember variability in spectral mixture analysis: A review. Remote Sensing of Environment, 115(7), 1603-1616. Wan, Z.M., & Dozier, J. (1996). A generalized split-window algorithm for retrieving land-surface temperature from space. Ieee Transactions on Geoscience and Remote Sensing, 34, 892-905
 
-*Table 2-4: Data Element Characteristic Definitions*
+Tompkins, S., Mustard, J. F., Pieters, C. M., Forsyth, D. W. (1997). Optimization of endmembers for spectral mixture analysis. Remote Sensing of Environment, 59(3), 472-489.
 
-### Double Precision Time Variables
+Wan, Z., Dozier, J. (1996). A generalized split-window algorithm for retrieving land-surface temperature from space. IEEE Transactions on geoscience and remote sensing, 34(4), 892-905.
 
-SBG-TIR double precision time variables contain measurements relative to the J2000 epoch. Thus, these variables represent a real number of Standard International (SI) compatible seconds since 11:58:55.816 on January 1, 2000 UTC.
-
-### Array Representation
-
-This document employs array notation to demonstrate and clarify the correspondence among data elements in different product data elements. The array notation adopted in this document is similar to the standards of the Fortran programming language. Indices are one based. Thus, the first index in each dimension is one. This convention is unlike C or C++, where the initial index in each dimension is zero. In multidimensional arrays, the leftmost subscript index changes most rapidly. Thus, in this document, array elements ARRAY(15,1,5) and ARRAY(16,1,5) are stored contiguously.
-
-GeoTIFF is designed to read data seamlessly regardless of the computer language used to write an application. Thus, elements that are contiguous using the dimension notation in this document will appear in contiguous locations in arrays for reading applications in any language with an GeoTIFF interface.
-
-This document differentiates among array indices based on relative contiguity of storage of elements referenced with consecutive numbers in that index position. A faster or fastest moving index implies that the elements with consecutive numbers in that index position are stored in relative proximity in memory. A slower or slowest moving index implies that the elements referenced with consecutive indices are stored more remotely in memory. For instance, given array element ARRAY(15,1,5) in Fortran, the first index is the fastest moving index, and the third index is the slowest moving index. On the other hand, given array element array\[4\]\[0\]\[14\] in C, the first index is the slowest moving index, and the third index is the fastest moving index.
-
-# [SBG-TIR PRODUCT FILES]{.smallcaps}
-
-The SBG-TIR product file will contain at least 3 groups of data: A standard metadata group that specifies the same type of contents for all products, a product specific metadata group that specifies those metadata elements that are useful for defining attributes of the product data, and the group(s) containing the product data. (Note: A product metadata is not to be confused with a GeoTIFF object metadata.)
-
-All product file names will have the form:
-
-SBG-TIR_<PROD_TYPE>_<OOOOO>_<SSS>_<YYYYMMDDThhmmss>_<BBbb>_<VV>.<TYPE>
-
-Where:
-
-PROD_TYPE: Product type =
-L1B_GEO, Geolocation parameters and at-sensor calibrated radiances 
-L1C_RAD, Gridded radiance at sensor 
-L1C_VNIR, Gridded radiance at sensor (VNIR)
-L2_LSTE, Land Surface temperature and emissivity
-L2_CLOUD, Cloud mask
-L2_VNIR_TOA, VNIR TOA reflectance 
-L2_VNIR_BOA, VNIR BOA reflectance
-L2_NDVI, NDVI 
-L3_ET, Evapotranspiration retrieved 
-L3_ETF, Elevated Temperature Features
-L3_SM, Surface Minerology
-L4_ESI, Evaporative Stress Index
-L4_WUE, Water Use Efficiency
-L4_VA, Volcanic Activity
-OOOOO: Orbit number; starting at start of mission, ascending equatorial crossing
-SSS: Scene ID; starting at first scene of each orbit
-YYYYMMDDThhmmss: Starting time of scene
-BBbb: Build ID of software that generated product, Major+Minor (2+2 digits)
-VV: Product version number (2 digits)
-TYPE: File type extension=
-.tif, for the data file
-.tif.xml, for the metadata file
-
-
-## Standard Metadata
-
-This is the minimal set of metadata that must be included with each product file. The standard metadata consists of the following:
-
-| **Name** | **Type** | **Size** | **Example** |
-| --- | --- | --- | --- |
-| AncillaryInputPointer | String | variable | Group name of ancillary file list | 
-| AutomaticQualityFlag | String | variable | PASS/FAIL (of product data) |
-| BuildId | String | variable | |
-| CollectionLabel | String | variable | |
-| DataFormatType | String | variable | NCSAHDF5 |
-| DayNightFlag | String | variable | |
-| EastBoundingCoordinate | LongFloat | 8 | |
-| HDFVersionId | String | variable | 1.8.16 |
-| ImageLines | Int32 | 4 | 5632 |
-| ImageLineSpacing | Float32 | 4 | 68.754 | 
-| ImagePixels | Int32 | 4 | 5400 |
-| ImagePixelSpacing | Float32 | 4 | 65.536 |
-| InputPointer | String | variable | |
-| InstrumentShortName | String | variable | SBG |
-| LocalGranuleID | String | variable | --- |
-| LongName | String | variable | SBG |
-| InstrumentShortName | String | variable | --- |
-| LocalGranuleID | String | variable | --- |
-| LongName | String | variable | SBG |
-| NorthBoundingCoordinate | LongFloat | 8 | --- |
-| PGEName | String | variable | L2_LSTE (L2_CLOUD) |
-| PGEVersion | String | variable | |
-| PlatformLongName | String | variable | |
-| PlatformShortName | String | variable | |
-| PlatformType | String | variable | Spacecraft |
-| ProcessingLevelID | String | variable | 1 |
-| ProcessingLevelDescription | String | variable | Level 2 Land Surface Temperatures and Emissivity (Level 2 Cloud mask) |
-| ProducerAgency | String | variable | JPL |
-| ProducerInstitution | String | variable | Caltech |
-| ProductionDateTime | String | variable | |
-| ProductionLocation | String | variable | |
-| CampaignShortName | String | variable | Primary |
-| RangeBeginningDate | String | variable | |
-| CampaignShortName | String | variable | |
-| RangeBeginningDate | String | variable | |
-| RangeBeginningTime | String | variable | |
-| RangeEndingDate | String | variable | |
-| RangeEndingTime | String | variable | |
-| SceneID | String | variable | |
-| ShortName | String | variable | L2_LSTE (L2_CLOUD) |
-| SceneID | String | variable | |
-| ShortName | String | variable | |
-| SISName | String | variable | |
-| SISVersion | String | variable | |
-| SouthBoundingCoordinate | LongFloat | 8 | |
-| StartOrbitNumber | String | variable | |
-| StartOrbitNumber | String | variable | |
-| WestBoundingCoordinate | LongFloat | 8 | |
-
-*Table 3-1: Standard Product Metadata*
-
-## Product-Specific Metadata
-
-Any additional metadata necessary for describing the product will be recorded in this group.
-
-
-| **Name** | **Type** | **Size** | **Example** |
-| --- | --- | --- | --- |
-| QualityBitFlag | Int   | 255  | 01011011011 |
-| AvgETUncertainty  | Float | 8 |  |
-| AncillaryFiles  | Int | 4 | 100   |
-| AncillaryFileAirTemperature | String | 255  | CFSR_FILENAME_DATE |
-| AncillaryFileSMid      | String  | 255  | EDAY_V7NC_CFSRINSOL_2018200.dat |
-| AncillaryFileBadMask   | String  | 255  |    |
-| AncillaryFileInsolation | String  | 255  | CFSR_FILENAME_DATE  |
-| AncillaryFileLandcover | String  | 255  | NLCD_FILENAME |
-| AncillaryFileLST       | String  | 255  | LSTE_FILENAME  |
-| AncillaryFileMixingRatio   | String | 255  | CFSR_FILENAME_DATE   |
-| AncillaryFilePressure  | String  | 255  | CFSR_FILENAME_DATE    |
-| AncillaryFileSurfaceReflectance | String | 255  | LANDSAT_TARFILE_NAME  |
-| AncillaryFileSurfReflectanceFill | String | 255  |   |
-| AncillaryFileWindSpeed | String | 255  | CFSR_FILENAME_DATE  |
-| BandSpecification | Float32 | 8    |   |
-| Projection | String | 255  | (SBG-TIR or UTM) |
-| Geotransform | String  | 255  | |
-| OGC Well Known Text | String | variable | Blank if Projection=SBG-TIR
-If Projection=UTM, EG:
-{PROJCS["UTM_Zone_11N",GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-117.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]} |
-
-*Table 3-2: Product Specific Metadata*
-
-
-## Product Data
-
-The product data will be stored in this group. Exact contents and layouts to be defined by each PGE and will conform to the GeoTIFF specifications.
-
-             
-| **Field Name** | **Type** | **Unit** |
-| --- | --- | --- |
-| Amphibole Percentage | Int8 | 0-100 |
-| Carbonate Percentage | Int8 | 0-100 |
-| Mica Percentage | Int8 | 0-100 |
-|  Olivine Percentage | Int8 | 0-100 |
-| Plagioclase Feldspar Percentage | Int8 | 0-100 |
-| Potassium Feldspar Percentage | Int8 | 0-100 |
-| Pyroxene Percentage | Int8 | 0-100 |   
-| Quartz Percentage  | Int8 | 0-100 |   
-| Sulfate Percentage  | Int8 | 0-100 |   
-| Blackbody Percentage  | Int8 | 0-100 |   
-| Band 1 Residual Error | Float16 | 0-100 |   
-| Band 2 Residual Error | Float16 | 0-100 |   
-| Band 3 Residual Error | Float16 | 0-100 |   
-| Band 4 Residual Error | Float16 | 0-100 |   
-| Band 5 Residual Error | Float16 | 0-100 |   
-| Band 6 Residual Error | Float16 | 0-100 |   
-| RMS Error | Float16 | 0-100 |       
-| Wt Perc Silica | Uint8 | 0-100 | 
-| Data Quality | int8 |  | 
-
-*Table 3-3: Product Data Definitions*
-
-## Product Metadata File
-
-The product metadata for each product file will be generated by the PCS from the metadata contents of each product file. The metadata will be converted into extensible markup language (XML). These will be used by the DAAC for cataloging. Exact contents and layout to be defined by PCS.
+Yu, Y., Privette, J.L., Pinheiro, A.C. (2008). Evaluation of split-window land surface temperature algorithms for generating climate data records. Ieee Transactions on Geoscience and Remote Sensing, 46, 179-192
